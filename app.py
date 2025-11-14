@@ -1,7 +1,6 @@
 # app.py — WORKING WITH REALISTIC MOCK FLIGHTS (MORE ROBUST VERSION)
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template_string, requests
 import datetime
-import requests
 
 app = Flask(__name__)
 
