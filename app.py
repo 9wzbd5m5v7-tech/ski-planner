@@ -3,17 +3,64 @@ from flask import Flask, request, render_template_string
 import datetime
 
 app = Flask(__name__)
+import requests
 
-# === REALISTIC MOCK FLIGHTS ===
 def get_flights(origin, dest, date_str):
-    # Mock data based on typical UK to ski hubs (prices/durations from real averages)
-    mock_flights = [
+    try:
+        print(f"Fetching real flights: {origin} → {dest} on {date_str}")
+        url = "http://api.aviationstack.com/v1/flights"
+        params = {
+            'access_key': '98f111be3cf406c3b16de507614c1110',  # Paste your key
+            'dep_iata': origin,
+            'arr_iata': dest,
+            'flight_date': date_str,
+            'limit': 3
+        }
+        response = requests.get(url, params=params)
+        response.raise_for_status()  # Raise error if bad status
+        data = response.json()
+        
+        if data.get('data'):
+            flights = []
+            for flight in data['data']:
+                airline = flight['airline']['name']
+                flight_num = flight['flight']['iata']
+                status = flight['flight_status']
+                dep_time = flight['departure']['scheduled'][-5:]
+                arr_time = flight['arrival']['scheduled'][-5:]
+                duration = f"{dep_time} → {arr_time}"
+                price = "£120+" if "BA" in flight_num else "£80+"  # Estimate
+                flights.append({
+                    'airline': airline,
+                    'flight': flight_num,
+                    'price': price,
+                    'duration': duration,
+                    'status': status
+                })
+            print(f"REAL FLIGHTS FOUND: {len(flights)}")
+            return flights
+        else:
+            print("No flights from API — using mock.")
+    except Exception as e:
+        print(f"API Error: {e} - Using mock.")
+    
+    # MOCK FALLBACK
+    return [
         {"airline": "British Airways", "flight": "BA730", "price": "£145", "duration": "2h 30m", "status": "Scheduled"},
         {"airline": "easyJet", "flight": "U22433", "price": "£89", "duration": "2h 45m", "status": "Available"},
         {"airline": "Swiss", "flight": "LX345", "price": "£198", "duration": "1h 50m", "status": "On Time"}
     ]
-    print(f"Using realistic mock flights for {origin} → {dest} on {date_str}")
-    return mock_flights
+
+# === REALISTIC MOCK FLIGHTS ===
+#def get_flights(origin, dest, date_str):
+    # Mock data based on typical UK to ski hubs (prices/durations from real averages)
+ #   mock_flights = [
+  #      {"airline": "British Airways", "flight": "BA730", "price": "£145", "duration": "2h 30m", "status": "Scheduled"},
+   #     {"airline": "easyJet", "flight": "U22433", "price": "£89", "duration": "2h 45m", "status": "Available"},
+    #    {"airline": "Swiss", "flight": "LX345", "price": "£198", "duration": "1h 50m", "status": "On Time"}
+    #]
+    #print(f"Using realistic mock flights for {origin} → {dest} on {date_str}")
+    #return mock_flights
 
 # === RESORTS ===
 def get_ski_resorts(skill, budget):
