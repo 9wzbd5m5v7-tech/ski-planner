@@ -1,9 +1,9 @@
 # app.py — WORKING WITH REALISTIC MOCK FLIGHTS (MORE ROBUST VERSION)
 from flask import Flask, request, render_template_string
 import datetime
+import requests
 
 app = Flask(__name__)
-import requests
 
 def get_flights(origin, dest, date_str):
     try:
