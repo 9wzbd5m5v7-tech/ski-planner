@@ -137,5 +137,6 @@ def home():
         return render_template_string(HTML, flights=flights, trains=trains, resort=resort, accom=accom, ai_rec=ai_rec)
     return render_template_string(HTML)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=False)  # Use 0.0.0.0 for Render; debug=False for production
