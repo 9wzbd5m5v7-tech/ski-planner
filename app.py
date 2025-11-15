@@ -5,7 +5,7 @@ import datetime
 
 app = Flask(__name__)
 
-TRAVELPAYOUTS_TOKEN = 'your_token_here'  # Paste your TravelPayouts token (get from travelpayouts.com/developers/api)
+TRAVELPAYOUTS_TOKEN = '35651821b8771a0780673b5c05b06d4c'  # Paste your TravelPayouts token (get from travelpayouts.com/developers/api)
 
 # === REAL FLIGHTS (TRAVELPAYOUTS API WITH ROBUST FALLBACK) ===
 def get_flights(origin, dest, date_str):
