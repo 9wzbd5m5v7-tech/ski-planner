@@ -1,11 +1,11 @@
-# app.py — ROBUST WITH REAL FLIGHT CALLS (TRAVELPAYOUTS) AND MOCK FALLBACK
+# app.py — WORKING WITH REAL FLIGHT CALLS (TRAVELPAYOUTS) AND MOCK FALLBACK
 from flask import Flask, request, render_template_string
 import requests
 import datetime
 
 app = Flask(__name__)
 
-TRAVELPAYOUTS_TOKEN = '35651821b8771a0780673b5c05b06d4c'  # Paste your TravelPayouts token
+TRAVELPAYOUTS_TOKEN = '35651821b8771a0780673b5c05b06d4c'  # Paste your TravelPayouts token here (get from https://www.travelpayouts.com/developers/api)
 
 # === REAL FLIGHTS (TRAVELPAYOUTS API WITH ROBUST FALLBACK) ===
 def get_flights(origin, dest, date_str):
@@ -18,7 +18,8 @@ def get_flights(origin, dest, date_str):
             'departure_at': date_str,
             'currency': 'GBP',
             'token': TRAVELPAYOUTS_TOKEN,
-            'limit': 3
+            'limit': 3,
+            'one_way': 'true'
         }
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()  # Raise if bad status
@@ -151,7 +152,7 @@ HTML = """
   </form>
   {% if flights %}
   <h2>Your Itinerary</h2>
-  <h3>Flights:</h3><ul>{% for f in flights %}<li>{{ f.airline }} {{ f.flight }} - {{ f.price }} ({{ f.duration }}) - {{ f.status }}</li>{% endfor %}</ul>
+  <h3>Flights:</h3><ul>{% for f in flights %}<li>{{ f.airline }} {{ f.flight }} - {{ f.price }} ({{ f.duration }}) - {{ f.status }}</li>{% endif %}</ul>
   <h3>Trains:</h3><ul>{% if trains %}<li>{{ trains.route }} - {{ trains.price }} ({{ trains.duration }})</li>{% endif %}</ul>
   <h3>Best Spot:</h3><ul>{% if resort %}<li>{{ resort.name }} - {{ resort.vibe }} (Under budget!)</li>{% endif %}</ul>
   <h3>Accom:</h3><ul>{% for a in accom %}<li>{{ a.name }} - {{ a.per_night }}/night ({{ a.rating }} stars) - Total {{ a.price }}</li>{% endfor %}</ul>
@@ -178,8 +179,5 @@ def home():
         return render_template_string(HTML, flights=flights, trains=trains, resort=resort, accom=accom, ai_rec=ai_rec)
     return render_template_string(HTML)
 
-#if __name__ == '__main__':
-    #app.run(debug=True)
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)  # Use 0.0.0.0 for Render; debug=False for production
+if __name__ == '__main__':
+    app.run(debug=True)
