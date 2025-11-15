@@ -1,38 +1,38 @@
-# app.py — ROBUST WITH REAL API CALLS (AVIATIONSTACK) AND MOCK FALLBACK
+# app.py — ROBUST WITH REAL FLIGHT CALLS (TRAVELPAYOUTS) AND MOCK FALLBACK
 from flask import Flask, request, render_template_string
 import requests
 import datetime
 
 app = Flask(__name__)
 
-AVIATIONSTACK_API_KEY = 'your_actual_key_here'  # Paste your AviationStack key
+TRAVELPAYOUTS_TOKEN = '35651821b8771a0780673b5c05b06d4c'  # Paste your TravelPayouts token
 
-# === FLIGHTS (REAL API WITH ROBUST FALLBACK) ===
+# === REAL FLIGHTS (TRAVELPAYOUTS API WITH ROBUST FALLBACK) ===
 def get_flights(origin, dest, date_str):
     try:
         print(f"Fetching real flights: {origin} → {dest} on {date_str}")
-        url = "http://api.aviationstack.com/v1/flights"
+        url = "https://api.travelpayouts.com/aviasales/v3/prices_for_dates"
         params = {
-            'access_key': AVIATIONSTACK_API_KEY,
-            'dep_iata': origin,
-            'arr_iata': dest,
-            'flight_date': date_str,
+            'origin': origin,
+            'destination': dest,
+            'departure_at': date_str,
+            'currency': 'GBP',
+            'token': TRAVELPAYOUTS_TOKEN,
             'limit': 3
         }
         response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()  # Raise if bad status (e.g., 403, 404)
+        response.raise_for_status()  # Raise if bad status
         data = response.json()
         
         if data.get('data') and len(data['data']) > 0:
             flights = []
-            for flight in data['data']:
-                airline = flight.get('airline', {}).get('name', 'Unknown')
-                flight_num = flight.get('flight', {}).get('iata', 'N/A')
-                status = flight.get('flight_status', 'Scheduled')
-                dep_time = flight.get('departure', {}).get('scheduled', '')[-5:] if flight.get('departure') else ''
-                arr_time = flight.get('arrival', {}).get('scheduled', '')[-5:] if flight.get('arrival') else ''
-                duration = f"{dep_time} → {arr_time}" if dep_time and arr_time else "2h 30m (est.)"
-                price = "£120+" if "BA" in flight_num else "£80+"  # Estimate; upgrade plan for real prices
+            for item in data['data']:
+                airline = item.get('airline', 'Unknown')
+                flight_num = item.get('flight_number', 'N/A')
+                status = 'Available'
+                price = f"£{item.get('price', 100)}"
+                duration_min = item.get('duration', 150)
+                duration = f"{duration_min // 60}h {duration_min % 60}m"
                 flights.append({
                     'airline': airline,
                     'flight': flight_num,
@@ -43,9 +43,9 @@ def get_flights(origin, dest, date_str):
             print(f"REAL FLIGHTS FOUND: {len(flights)}")
             return flights
         else:
-            print("No flights from API (date may be too far future or no schedules yet) — using mock.")
+            print("No flights from API (date may be too far or no schedules) — using mock.")
     except requests.exceptions.HTTPError as http_err:
-        print(f"HTTP Error: {http_err} (check key or limits) — using mock.")
+        print(f"HTTP Error: {http_err} (check token or limits) — using mock.")
     except Exception as e:
         print(f"API Error: {e} — using mock.")
     
@@ -178,5 +178,8 @@ def home():
         return render_template_string(HTML, flights=flights, trains=trains, resort=resort, accom=accom, ai_rec=ai_rec)
     return render_template_string(HTML)
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)  # Use 0.0.0.0 for Render; debug=False for production
+if __name__ == '__main__':
+    app.run(debug=True)
+
+#if __name__ == "__main__":
+ #   app.run(host="0.0.0.0", port=5000, debug=False)  # Use 0.0.0.0 for Render; debug=False for production
