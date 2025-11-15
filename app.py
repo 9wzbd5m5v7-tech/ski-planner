@@ -1,35 +1,38 @@
-# app.py — WORKING WITH REAL DATA FLIGHTS (MORE ROBUST VERSION)
+# app.py — ROBUST WITH REAL API CALLS (AVIATIONSTACK) AND MOCK FALLBACK
 from flask import Flask, request, render_template_string
 import requests
 import datetime
 
 app = Flask(__name__)
 
+AVIATIONSTACK_API_KEY = 'your_actual_key_here'  # Paste your AviationStack key
+
+# === FLIGHTS (REAL API WITH ROBUST FALLBACK) ===
 def get_flights(origin, dest, date_str):
     try:
         print(f"Fetching real flights: {origin} → {dest} on {date_str}")
         url = "http://api.aviationstack.com/v1/flights"
         params = {
-            'access_key': '98f111be3cf406c3b16de507614c1110',  # Paste your key
+            'access_key': AVIATIONSTACK_API_KEY,
             'dep_iata': origin,
             'arr_iata': dest,
             'flight_date': date_str,
             'limit': 3
         }
-        response = requests.get(url, params=params)
-        response.raise_for_status()  # Raise error if bad status
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()  # Raise if bad status (e.g., 403, 404)
         data = response.json()
         
-        if data.get('data'):
+        if data.get('data') and len(data['data']) > 0:
             flights = []
             for flight in data['data']:
-                airline = flight['airline']['name']
-                flight_num = flight['flight']['iata']
-                status = flight['flight_status']
-                dep_time = flight['departure']['scheduled'][-5:]
-                arr_time = flight['arrival']['scheduled'][-5:]
-                duration = f"{dep_time} → {arr_time}"
-                price = "£120+" if "BA" in flight_num else "£80+"  # Estimate
+                airline = flight.get('airline', {}).get('name', 'Unknown')
+                flight_num = flight.get('flight', {}).get('iata', 'N/A')
+                status = flight.get('flight_status', 'Scheduled')
+                dep_time = flight.get('departure', {}).get('scheduled', '')[-5:] if flight.get('departure') else ''
+                arr_time = flight.get('arrival', {}).get('scheduled', '')[-5:] if flight.get('arrival') else ''
+                duration = f"{dep_time} → {arr_time}" if dep_time and arr_time else "2h 30m (est.)"
+                price = "£120+" if "BA" in flight_num else "£80+"  # Estimate; upgrade plan for real prices
                 flights.append({
                     'airline': airline,
                     'flight': flight_num,
@@ -40,9 +43,11 @@ def get_flights(origin, dest, date_str):
             print(f"REAL FLIGHTS FOUND: {len(flights)}")
             return flights
         else:
-            print("No flights from API — using mock.")
+            print("No flights from API (date may be too far future or no schedules yet) — using mock.")
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP Error: {http_err} (check key or limits) — using mock.")
     except Exception as e:
-        print(f"API Error: {e} - Using mock.")
+        print(f"API Error: {e} — using mock.")
     
     # MOCK FALLBACK
     return [
@@ -50,17 +55,6 @@ def get_flights(origin, dest, date_str):
         {"airline": "easyJet", "flight": "U22433", "price": "£89", "duration": "2h 45m", "status": "Available"},
         {"airline": "Swiss", "flight": "LX345", "price": "£198", "duration": "1h 50m", "status": "On Time"}
     ]
-
-# === REALISTIC MOCK FLIGHTS ===
-#def get_flights(origin, dest, date_str):
-    # Mock data based on typical UK to ski hubs (prices/durations from real averages)
- #   mock_flights = [
-  #      {"airline": "British Airways", "flight": "BA730", "price": "£145", "duration": "2h 30m", "status": "Scheduled"},
-   #     {"airline": "easyJet", "flight": "U22433", "price": "£89", "duration": "2h 45m", "status": "Available"},
-    #    {"airline": "Swiss", "flight": "LX345", "price": "£198", "duration": "1h 50m", "status": "On Time"}
-    #]
-    #print(f"Using realistic mock flights for {origin} → {dest} on {date_str}")
-    #return mock_flights
 
 # === RESORTS ===
 def get_ski_resorts(skill, budget):
@@ -184,6 +178,5 @@ def home():
         return render_template_string(HTML, flights=flights, trains=trains, resort=resort, accom=accom, ai_rec=ai_rec)
     return render_template_string(HTML)
 
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)  # Use 0.0.0.0 for Render; debug=False for production
+if __name__ == '__main__':
+    app.run(debug=True)
